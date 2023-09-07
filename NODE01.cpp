@@ -87,9 +87,9 @@ int main()
         int adjSet = 1;
         int adjMatrix[5][5];
         pc.printf("Enter 'a', 'b', 'c', or 'd' for desired communication graph.\n\r");
-        pc.printf("\t a) Complete graph\n\r");
-        pc.printf("\t b) Undirected Path\n\r");
-        pc.printf("\t c) Undirected Cycle\n\r");
+        pc.printf("\t a) Undirected Path\n\r");
+        pc.printf("\t b) Undirected Cycle\n\r");
+        pc.printf("\t c) Complete graph\n\r");
         pc.printf("\t d) Digraph 1\n\r");
         pc.printf("\t e) Other - Type Adjacency matrix\n\r");
         int completeGraph[5][5] = {{0,1,1,1,1},{1,0,1,1,1},{1,1,0,1,1},{1,1,1,0,1},{1,1,1,1,0}};
@@ -98,13 +98,13 @@ int main()
         int diGraph[5][5] = {{0,0,0,0,1},{1,0,0,0,0},{0,1,0,0,0},{0,0,1,0,0},{0,0,0,1,0}};
         int graph[5][5];
         char c = pc.getc();
-        if ((c == 'a') || (c == 'A')) {
+        if ((c == 'c') || (c == 'C')) {
             adjSet = 0;
             pc.printf("Complete graph\n\r");
-        } else if ((c == 'b') || (c == 'B')) {
+        } else if ((c == 'a') || (c == 'A')) {
             adjSet = 0;
             pc.printf("Path graph\n\r");
-        } else if ((c == 'c') || (c == 'C')) {
+        } else if ((c == 'b') || (c == 'B')) {
             adjSet = 0;
             pc.printf("Cycle graph\n\r");
         } else if ((c == 'd') || (c == 'D')) {
