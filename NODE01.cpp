@@ -70,6 +70,10 @@ int main()
     float duration;
     int estimate;
     float estimateYaw;
+    float delay;
+    int delayCase;
+    int bufferSize;
+    float yawControl;
 
     pc.baud(115200);
     pc.printf("Starting Program... \n\r");
@@ -96,7 +100,7 @@ int main()
             }
         }
         r = pc.getc();
-        pc.printf("\n\r \t ***** Agreement Protocol ***** \n\r\n\r");
+        pc.printf("\n\r \t ***** Time Delayed Agreement Protocol ***** \n\r\n\r");
         pc.printf("Enter 'a', 'b', 'c', 'd', or 'e' for desired communication graph. \n\r");
         pc.printf("\t a) Undirected Path\n\r");
         pc.printf("\t b) Undirected Cycle\n\r");
@@ -180,9 +184,31 @@ int main()
             estimate = 0;
         }
 
+        pc.printf("Enter '1' or '2' for the type of time-delay experiments you want to perform:\n\r");
+        pc.printf("1) Case 1: dxi/dt = sum(xj(t-tau) - xi(t-tau))\n\r"); 
+        pc.printf("2) Case 2: dxi/dt = sum(xj(t-tau) - xi(t))\n\r"); 
+        c = pc.getc();
+        if (c == '1') {
+            pc.printf("You chose Case 1. \n\r");
+            delayCase = 1;
+        } else {
+            pc.printf("You chose Case 2. \n\r");
+            delayCase = 2;
+        }
+        pc.printf("Enter the delay amount (tau) in seconds (use one decimal place, ex: 0.5):\n\r");
+        pc.scanf("%f", &delay);
+        pc.printf("You entered %.1f seconds.\n\r", delay);
+        bufferSize = (int)(2*10*delay); 
+        duration = 10 + (3-delayCase)*delay*10;
+        if (duration <= 1){
+            duration = 1;
+        }
+        if (bufferSize == 0){
+            bufferSize = 1;
+        }
 
         pc.printf("\n\rPress 1 for default experimental settings, press 2 for user-input settings\n\r");
-        pc.printf("  1) Evenly distributed initial servo positions, duration of experiment of 10 seconds\n\r");
+        pc.printf("  1) Evenly distributed initial servo positions, duration of experiment of %.2f seconds\n\r", duration);
         pc.printf("  2) Manually enter initial servo positions and duration of experiment\n\r");
         c = pc.getc();
         
@@ -197,7 +223,7 @@ int main()
                 pc.printf("PCM %d\n\r", initServo[i]);
             }
 
-            duration = 10;
+            //duration = 15;
             pc.printf("Duration of %.2f\n\r", duration);
             thread_sleep_for(500);
         }
@@ -216,6 +242,7 @@ int main()
             pc.scanf("%f", &duration);
             pc.printf("%.2f \n\r", duration);
         }
+
 
         pc.printf("Initializing experiment... \n\r");
 
@@ -264,6 +291,31 @@ int main()
             thread_sleep_for(250);
         }
 
+        thread_sleep_for(250);
+        sprintf(msg_send, "%d\r\n", 2222);
+        for(int i=0; i<8; i++) {
+            canTx_msg.data[i] = msg_send[i];
+        }
+        canTx_msg.id = myID;
+        can3.write(&canTx_msg); //Send command
+        thread_sleep_for(500);
+
+        sprintf(msg_send, "%d\r\n", delayCase);
+        for(int i=0; i<8; i++) {
+            canTx_msg.data[i] = msg_send[i];
+        }
+        canTx_msg.id = myID;
+        can3.write(&canTx_msg); //Send command
+        thread_sleep_for(500);
+
+        sprintf(msg_send, "%d\r\n", bufferSize);
+        for(int i=0; i<8; i++) {
+            canTx_msg.data[i] = msg_send[i];
+        }
+        canTx_msg.id = myID;
+        can3.write(&canTx_msg); //Send command
+        thread_sleep_for(400);
+
         int controlSignal = initServo[myID-1];
         servoOut1 = controlSignal;
         thread_sleep_for(3000);
@@ -282,6 +334,22 @@ int main()
                 sscanf(msg_read_char, "%f", &currAngles[canRx_msg.id-1]);
                 thread_sleep_for(15-2*myID);  //allows them to use the CAN at different times
                 //some wait 13, 11, 9, 7, 5 seconds
+            }
+        }
+        while (t.read() < 1.5) {
+            if(can3.read(&canRx_msg) == CAN_OK){
+                pc.printf("Cleaning buffer...\n\r");
+            }
+        }
+
+        float delayedAngles[5][bufferSize];
+        for (int i = 0; i < 5; i++){
+            for (int j = 0; j < bufferSize; j++){
+                if (estimate == 0){
+                    delayedAngles[i][j] = yaw;
+                } else {
+                    delayedAngles[i][j] =180.0/2000*controlSignal - 45;
+                }
             }
         }
         //t.stop();
@@ -329,10 +397,23 @@ int main()
                     //some wait 13, 11, 9, 7, 5 seconds
                 }
             }
+
+            if (delayCase == 1) {
+                yawControl = delayedAngles[myID-1][0];
+            } else {
+                yawControl = currAngles[myID-1];
+            }
+
             for (int i = 0; i < 5; i++) {
                 if (adjMatrix[myID-1][i] > 0) {
-                    controlSignal = controlSignal + 0.5*adjMatrix[myID-1][i]*(int)(currAngles[i]-currAngles[myID-1]);
+                    controlSignal = controlSignal + 0.5*adjMatrix[myID-1][i]*(int)(delayedAngles[i][0]-yawControl);
                 }
+            }
+            for (int i = 0; i < 5; i++){
+                for (int j = 0; j < bufferSize-1; j++){
+                    delayedAngles[i][j] = delayedAngles[i][j+1];
+                }
+                delayedAngles[i][bufferSize-1] = currAngles[i];
             }
             if (controlSignal > 2500) {
                 controlSignal = 2500;
