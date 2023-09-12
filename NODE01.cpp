@@ -86,7 +86,18 @@ int main()
         pc.printf("------Set up graph, -----\n\r");
         int adjSet = 1;
         int adjMatrix[5][5];
-        pc.printf("Enter 'a', 'b', 'c', or 'd' for desired communication graph.\n\r");
+        pc.printf("Press 'r' to read the BNO Sensor, press any other key to continue to main program.");
+        char r = pc.getc();
+        if ((r == 'r') || (r == 'R')) {
+            while (!pc.readable()){
+            bno.get_angles();
+            pc.printf("Angular Position: %5.2f. Press any key to continue to main program.\n\r", bno.euler.yaw);
+            thread_sleep_for(400);
+            }
+        }
+        r = pc.getc();
+        pc.printf("\n\r \t ***** Agreement Protocol ***** \n\r\n\r");
+        pc.printf("Enter 'a', 'b', 'c', 'd', or 'e' for desired communication graph. \n\r");
         pc.printf("\t a) Undirected Path\n\r");
         pc.printf("\t b) Undirected Cycle\n\r");
         pc.printf("\t c) Complete graph\n\r");
@@ -115,11 +126,11 @@ int main()
             pc.printf("Adjacency Matrix is:\n\r");
             for(int i = 0; i < 5; i++) {
                 for(int j = 0; j < 5; j++) {
-                    if ((c == 'a') || (c == 'A')) {
+                    if ((c == 'c') || (c == 'C')) {
                         adjMatrix[i][j] = completeGraph[i][j];
-                    } else if ((c == 'b') || (c == 'B')) {
+                    } else if ((c == 'a') || (c == 'A')) {
                         adjMatrix[i][j] = pathGraph[i][j];
-                    } else if ((c == 'c') || (c == 'C')){
+                    } else if ((c == 'b') || (c == 'B')){
                         adjMatrix[i][j] = cycleGraph[i][j];
                     } else {
                         adjMatrix[i][j] = diGraph[i][j];
@@ -170,9 +181,9 @@ int main()
         }
 
 
-        pc.printf("Press 1 for default experimental settings, press 2 for user-input settings\n\r");
-        pc.printf("\t 1) Evenly distributed initial servo positions, duration of experiment of 10 seconds\n\r");
-        pc.printf("\t 2) Manually enter initial servo positions and duration of experiment\n\r");
+        pc.printf("\n\rPress 1 for default experimental settings, press 2 for user-input settings\n\r");
+        pc.printf("  1) Evenly distributed initial servo positions, duration of experiment of 10 seconds\n\r");
+        pc.printf("  2) Manually enter initial servo positions and duration of experiment\n\r");
         c = pc.getc();
         
         if (c=='1'){
