@@ -74,6 +74,7 @@ int main()
     int delayCase;
     int bufferSize;
     float yawControl;
+    int continueFlag = 0;
 
     pc.baud(115200);
     pc.printf("Starting Program... \n\r");
@@ -85,10 +86,11 @@ int main()
     //servoOut1.pulse_us = 1500;
     while(1) {
         pc.printf("Node %d is ready!\n\r", myID);
+        pc.printf("Running Agreement Protocol with Time Delays program...\n\r", myID);
         bno.get_angles();
         pc.printf("Last BNO Yaw Position: %.2f\n\r", bno.euler.yaw);
         pc.printf("------Set up graph, -----\n\r");
-        int adjSet = 1;
+        int adjSet = 0;
         int adjMatrix[5][5];
         pc.printf("Press 'r' to read the BNO Sensor, press any other key to continue to main program.");
         char r = pc.getc();
@@ -101,79 +103,95 @@ int main()
         }
         r = pc.getc();
         pc.printf("\n\r \t ***** Time Delayed Agreement Protocol ***** \n\r\n\r");
-        pc.printf("Enter 'a', 'b', 'c', 'd', or 'e' for desired communication graph. \n\r");
-        pc.printf("\t a) Undirected Path\n\r");
-        pc.printf("\t b) Undirected Cycle\n\r");
-        pc.printf("\t c) Complete graph\n\r");
-        pc.printf("\t d) Digraph 1\n\r");
-        pc.printf("\t e) Other - Type Adjacency matrix\n\r");
         int completeGraph[5][5] = {{0,1,1,1,1},{1,0,1,1,1},{1,1,0,1,1},{1,1,1,0,1},{1,1,1,1,0}};
         int pathGraph[5][5] = {{0,1,0,0,0},{1,0,1,0,0},{0,1,0,1,0},{0,0,1,0,1},{0,0,0,1,0}};
         int cycleGraph[5][5] = {{0,1,0,0,1},{1,0,1,0,0},{0,1,0,1,0},{0,0,1,0,1},{1,0,0,1,0}};
         int diGraph[5][5] = {{0,0,0,0,1},{1,0,0,0,0},{0,1,0,0,0},{0,0,1,0,0},{0,0,0,1,0}};
         int graph[5][5];
-        char c = pc.getc();
-        if ((c == 'c') || (c == 'C')) {
-            adjSet = 0;
-            pc.printf("Complete graph\n\r");
-        } else if ((c == 'a') || (c == 'A')) {
-            adjSet = 0;
-            pc.printf("Path graph\n\r");
-        } else if ((c == 'b') || (c == 'B')) {
-            adjSet = 0;
-            pc.printf("Cycle graph\n\r");
-        } else if ((c == 'd') || (c == 'D')) {
-            adjSet = 0;
-            pc.printf("Digraph 1\n\r");
-        }
-        if (adjSet != 1) {
-            pc.printf("Adjacency Matrix is:\n\r");
-            for(int i = 0; i < 5; i++) {
-                for(int j = 0; j < 5; j++) {
-                    if ((c == 'c') || (c == 'C')) {
-                        adjMatrix[i][j] = completeGraph[i][j];
-                    } else if ((c == 'a') || (c == 'A')) {
-                        adjMatrix[i][j] = pathGraph[i][j];
-                    } else if ((c == 'b') || (c == 'B')){
-                        adjMatrix[i][j] = cycleGraph[i][j];
-                    } else {
-                        adjMatrix[i][j] = diGraph[i][j];
-                    }
-
-                    pc.printf("%d ", adjMatrix[i][j]);
-                }
-                pc.printf("\n\r");
-            }
-        }
-        while(adjSet) {
-            pc.printf("Enter the ij element of Adjacency matrix (only '0' or '1') \n\r");
-            pc.printf("\n");
-            for(int i = 0; i < 5; i++) {
-                for(int j=0; j < 5; j++) {
-                    if ((i == 4) && (j==4)) {
-                        pc.printf("Last Entry...\n\r");
-                    }
-                    pc.printf("Enter value for A[%d][%d]:", i+1, j+1);
-                    pc.scanf("%d", &adjMatrix[i][j]);
-                    pc.printf("%d \n\r", adjMatrix[i][j]);
-                }
-            }
-            pc.printf("You entered:\n\r");
-            for(int i = 0; i < 5; i++) {
-                for(int j = 0; j < 5; j++) {
-                    pc.printf("%d ", adjMatrix[i][j]);
-                }
-                pc.printf("\n\r");
-            }
-            pc.printf("Is the matrix correct? [Y,N]");
+        char c;
+        while (continueFlag == 0){
+            pc.printf("Enter 'a', 'b', 'c', 'd', or 'e' for desired communication graph. \n\r");
+            pc.printf("\t a) Undirected Path\n\r");
+            pc.printf("\t b) Undirected Cycle\n\r");
+            pc.printf("\t c) Complete graph\n\r");
+            pc.printf("\t d) Digraph 1\n\r");
+            pc.printf("\t e) Other - Type Adjacency matrix\n\r");
             c = pc.getc();
-            pc.printf("%c \n\r", c);
-            if ((c == 'y') || (c == 'Y')) {
+            if ((c == 'c') || (c == 'C')) {
                 adjSet = 0;
-            } else {
-                pc.printf("Try again.\n\r");
+                pc.printf("Complete graph\n\r");
+                continueFlag = 1;
+            } else if ((c == 'a') || (c == 'A')) {
+                adjSet = 0;
+                pc.printf("Path graph\n\r");
+                continueFlag = 1;
+            } else if ((c == 'b') || (c == 'B')) {
+                adjSet = 0;
+                pc.printf("Cycle graph\n\r");
+                continueFlag = 1;
+            } else if ((c == 'd') || (c == 'D')) {
+                adjSet = 0;
+                pc.printf("Digraph 1\n\r");
+                continueFlag = 1;
+            } else if ((c == 'e') || (c == 'E')) {
+                adjSet = 1;
+                continueFlag = 1;
+            }
+            if ((adjSet != 1) && (continueFlag == 1)) {
+                pc.printf("Adjacency Matrix is:\n\r");
+                for(int i = 0; i < 5; i++) {
+                    for(int j = 0; j < 5; j++) {
+                        if ((c == 'c') || (c == 'C')) {
+                            adjMatrix[i][j] = completeGraph[i][j];
+                        } else if ((c == 'a') || (c == 'A')) {
+                            adjMatrix[i][j] = pathGraph[i][j];
+                        } else if ((c == 'b') || (c == 'B')){
+                            adjMatrix[i][j] = cycleGraph[i][j];
+                        } else {
+                            adjMatrix[i][j] = diGraph[i][j];
+                        }
+
+                        pc.printf("%d ", adjMatrix[i][j]);
+                    }
+                    pc.printf("\n\r");
+                }
+            }
+            while(adjSet) {
+                pc.printf("Enter the ij element of Adjacency matrix (only '0' or '1') \n\r");
+                pc.printf("\n");
+                for(int i = 0; i < 5; i++) {
+                    for(int j=0; j < 5; j++) {
+                        if ((i == 4) && (j==3)) {
+                            pc.printf("Last Entry...\n\r");
+                        }
+                        if (i == j){
+                            adjMatrix[i][j] = 0;
+                            pc.printf("................A[%d][%d]:0 \n\r", i+1, j+1);
+                        } else {
+                            pc.printf("Enter value for A[%d][%d]:", i+1, j+1);
+                            pc.scanf("%d", &adjMatrix[i][j]);
+                            pc.printf("%d \n\r", adjMatrix[i][j]);
+                        }
+                    }
+                }
+                pc.printf("You entered:\n\r");
+                for(int i = 0; i < 5; i++) {
+                    for(int j = 0; j < 5; j++) {
+                        pc.printf("%d ", adjMatrix[i][j]);
+                    }
+                    pc.printf("\n\r");
+                }
+                pc.printf("Is the matrix correct? [Y,N]");
+                c = pc.getc();
+                pc.printf("%c \n\r", c);
+                if ((c == 'y') || (c == 'Y')) {
+                    adjSet = 0;
+                } else {
+                    pc.printf("Try again.\n\r");
+                }
             }
         }
+        continueFlag = 0;
         pc.printf("Press '0' to use the BNO Sensor for heading information or '1' to use an Estimate from the Servo Control.\n\r");
         c = pc.getc();
         if (c == '1'){
@@ -199,7 +217,7 @@ int main()
         pc.scanf("%f", &delay);
         pc.printf("You entered %.1f seconds.\n\r", delay);
         bufferSize = (int)(2*10*delay); 
-        duration = 10 + (3-delayCase)*delay*10;
+        duration = 12 + (3-delayCase)*delay*10;
         if (duration <= 1){
             duration = 1;
         }
@@ -424,9 +442,9 @@ int main()
             if (count == 1) {
                 pc.printf("No.\t Time\t Node 1\t Node 2\t Node 3\t Node 4\t Node 5\t PCM\n\r");
             }
-            pc.printf("%d \t %.2f \t", count, t.read()/2);
+            pc.printf("%d, \t %.2f, \t", count, t.read()/2);
             for(int i = 0; i < 5; i++) {
-                pc.printf("%.1f\t", currAngles[i]);
+                pc.printf("%.1f,\t", currAngles[i]);
             }
             pc.printf("%d\n\r", controlSignal);
         }//while(1)
